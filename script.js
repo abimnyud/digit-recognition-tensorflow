@@ -1,41 +1,30 @@
-/**
- * @license
- * Copyright 2018 Google LLC. All Rights Reserved.
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- * =============================================================================
- */
-
-const status = document.getElementById("status");
-if (status) {
-  status.innerText = "Loaded TensorFlow.js - version: " + tf.version.tfjs;
-}
-
 import { MnistData } from "./data.js";
 
+/**
+ * Untuk menampilkan contoh input gambar dari MNIST dataset
+ */
 async function showExamples(data) {
-  // Create a container in the visor
+  /**
+   * Membuat container baru di tf visor
+   */
   const surface = tfvis
     .visor()
     .surface({ name: "Input Data Examples", tab: "Input Data" });
 
-  // Get the examples
+  /**
+   * Mengambil 20 contoh input gambar dari test batch
+   */
   const examples = data.nextTestBatch(20);
   const numExamples = examples.xs.shape[0];
 
-  // Create a canvas element to render each example
+  /**
+   * Membuat elemn canvas untuk me-render gambarnya di halaman website
+   */
   for (let i = 0; i < numExamples; i++) {
     const imageTensor = tf.tidy(() => {
-      // Reshape the image to 28x28 px
+      /**
+       * Mengubah ukuran gambar menjadi 28 x 28 pixel
+       */
       return examples.xs
         .slice([i, 0], [1, examples.xs.shape[1]])
         .reshape([28, 28, 1]);
@@ -52,6 +41,9 @@ async function showExamples(data) {
   }
 }
 
+/**
+ * Fungsi utama untuk menjalankan semua proses training dan validation
+ */
 async function run() {
   const data = new MnistData();
   await data.load();
@@ -61,13 +53,19 @@ async function run() {
   tfvis.show.modelSummary({ name: "Model Architecture", tab: "Model" }, model);
 
   await train(model, data);
-  
+
   await showAccuracy(model, data);
-  await showConfusion(model, data);  
+  await showConfusion(model, data);
 }
 
+/**
+ * Untuk menampilkan tensorflow visor ke halaman website
+ */
 document.addEventListener("DOMContentLoaded", run);
 
+/**
+ * Fungsi untuk melakukan training model
+ */
 async function train(model, data) {
   const metrics = ["loss", "val_loss", "acc", "val_acc"];
   const container = {
@@ -77,6 +75,9 @@ async function train(model, data) {
   };
   const fitCallbacks = tfvis.show.fitCallbacks(container, metrics);
 
+  /**
+   * Menentukan ukuran data dalam setiap batch
+   */
   const BATCH_SIZE = 512;
   const TRAIN_DATA_SIZE = 5500;
   const TEST_DATA_SIZE = 1000;
@@ -91,6 +92,9 @@ async function train(model, data) {
     return [d.xs.reshape([TEST_DATA_SIZE, 28, 28, 1]), d.labels];
   });
 
+  /**
+   * Training model
+   */
   return model.fit(trainXs, trainYs, {
     batchSize: BATCH_SIZE,
     validationData: [testXs, testYs],
@@ -100,74 +104,118 @@ async function train(model, data) {
   });
 }
 
+/**
+ * Fungsi untuk mengambil model
+ */
 function getModel() {
   const model = tf.sequential();
-  
+
+  /**
+   * Menentukan ukuran gambar dan channel
+   */
   const IMAGE_WIDTH = 28;
   const IMAGE_HEIGHT = 28;
-  const IMAGE_CHANNELS = 1;  
-  
-  // In the first layer of our convolutional neural network we have 
-  // to specify the input shape. Then we specify some parameters for 
-  // the convolution operation that takes place in this layer.
-  model.add(tf.layers.conv2d({
-    inputShape: [IMAGE_WIDTH, IMAGE_HEIGHT, IMAGE_CHANNELS],
-    kernelSize: 5,
-    filters: 8,
-    strides: 1,
-    activation: 'relu',
-    kernelInitializer: 'varianceScaling'
-  }));
+  const IMAGE_CHANNELS = 1;
 
-  // The MaxPooling layer acts as a sort of downsampling using max values
-  // in a region instead of averaging.  
-  model.add(tf.layers.maxPooling2d({poolSize: [2, 2], strides: [2, 2]}));
-  
-  // Repeat another conv2d + maxPooling stack. 
-  // Note that we have more filters in the convolution.
-  model.add(tf.layers.conv2d({
-    kernelSize: 5,
-    filters: 16,
-    strides: 1,
-    activation: 'relu',
-    kernelInitializer: 'varianceScaling'
-  }));
-  model.add(tf.layers.maxPooling2d({poolSize: [2, 2], strides: [2, 2]}));
-  
-  // Now we flatten the output from the 2D filters into a 1D vector to prepare
-  // it for input into our last layer. This is common practice when feeding
-  // higher dimensional data to a final classification output layer.
+  /**
+   * Pada layer pertama dari convolutional neural network,
+   * harus menentukan input shape nya. Kemudian menentukan
+   * beberapa parameter untuk operasi konvolusi pada layer ini
+   */
+  model.add(
+    tf.layers.conv2d({
+      inputShape: [IMAGE_WIDTH, IMAGE_HEIGHT, IMAGE_CHANNELS],
+      kernelSize: 5,
+      filters: 8,
+      strides: 1,
+      activation: "relu",
+      kernelInitializer: "varianceScaling",
+    })
+  );
+
+  /**
+   * Lapisan MaxPooling bertindak sebagai semacam downsampling
+   * menggunakan nilai maksimal di suatu wilayah.
+   */
+  model.add(tf.layers.maxPooling2d({ poolSize: [2, 2], strides: [2, 2] }));
+
+  /**
+   * Mengulangi kedua proses di atas (conv2d + maxPooling)
+   * dengan tambahan lebih banyak filter dalam operasi konvolusi
+   */
+  model.add(
+    tf.layers.conv2d({
+      kernelSize: 5,
+      filters: 16,
+      strides: 1,
+      activation: "relu",
+      kernelInitializer: "varianceScaling",
+    })
+  );
+  model.add(tf.layers.maxPooling2d({ poolSize: [2, 2], strides: [2, 2] }));
+
+  /**
+   * Layer keempat ini meratakan output dari filter 2D menjadi vektor 1D
+   * untuk mempersiapkannya sebagai input ke dalam lapisan terakhir.
+   */
   model.add(tf.layers.flatten());
 
-  // Our last layer is a dense layer which has 10 output units, one for each
-  // output class (i.e. 0, 1, 2, 3, 4, 5, 6, 7, 8, 9).
+  /**
+   * Layer terakhir ini adalah dense layer yang memiliki 10 unit keluaran,
+   * satu untuk setiap kelas keluaran (yaitu 0, 1, 2, 3, 4, 5, 6, 7, 8, 9).
+   */
   const NUM_OUTPUT_CLASSES = 10;
-  model.add(tf.layers.dense({
-    units: NUM_OUTPUT_CLASSES,
-    kernelInitializer: 'varianceScaling',
-    activation: 'softmax'
-  }));
+  model.add(
+    tf.layers.dense({
+      units: NUM_OUTPUT_CLASSES,
+      kernelInitializer: "varianceScaling",
+      activation: "softmax",
+    })
+  );
 
-  
-  // Choose an optimizer, loss function and accuracy metric,
-  // then compile and return the model
+  /**
+   * Memilih optimizer, loss function dan accuracy metric,
+   * kemudian di-comple dan kembalikan modelnya
+   */
   const optimizer = tf.train.adam();
   model.compile({
     optimizer: optimizer,
-    loss: 'categoricalCrossentropy',
-    metrics: ['accuracy'],
+    loss: "categoricalCrossentropy",
+    metrics: ["accuracy"],
   });
 
   return model;
 }
 
-const classNames = ['Zero', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
+/**
+ * Menentukan nama kelas
+ */
+const classNames = [
+  "Zero",
+  "One",
+  "Two",
+  "Three",
+  "Four",
+  "Five",
+  "Six",
+  "Seven",
+  "Eight",
+  "Nine",
+];
 
+/**
+ * Fungsi untuk melakukan prediksi
+ */
 function doPrediction(model, data, testDataSize = 500) {
   const IMAGE_WIDTH = 28;
   const IMAGE_HEIGHT = 28;
   const testData = data.nextTestBatch(testDataSize);
-  const testxs = testData.xs.reshape([testDataSize, IMAGE_WIDTH, IMAGE_HEIGHT, 1]);
+  const testxs = testData.xs.reshape([
+    testDataSize,
+    IMAGE_WIDTH,
+    IMAGE_HEIGHT,
+    1,
+  ]);
   const labels = testData.labels.argMax(-1);
   const preds = model.predict(testxs).argMax(-1);
 
@@ -175,21 +223,29 @@ function doPrediction(model, data, testDataSize = 500) {
   return [preds, labels];
 }
 
-
+/**
+ * Fungsi untuk menampilkan akurasi
+ */
 async function showAccuracy(model, data) {
   const [preds, labels] = doPrediction(model, data);
   const classAccuracy = await tfvis.metrics.perClassAccuracy(labels, preds);
-  const container = {name: 'Accuracy', tab: 'Evaluation'};
+  const container = { name: "Accuracy", tab: "Evaluation" };
   tfvis.show.perClassAccuracy(container, classAccuracy, classNames);
 
   labels.dispose();
 }
 
+/**
+ * Fungsi untuk menampilkan tabel confusion matrix
+ */
 async function showConfusion(model, data) {
   const [preds, labels] = doPrediction(model, data);
   const confusionMatrix = await tfvis.metrics.confusionMatrix(labels, preds);
-  const container = {name: 'Confusion Matrix', tab: 'Evaluation'};
-  tfvis.render.confusionMatrix(container, {values: confusionMatrix, tickLabels: classNames});
+  const container = { name: "Confusion Matrix", tab: "Evaluation" };
+  tfvis.render.confusionMatrix(container, {
+    values: confusionMatrix,
+    tickLabels: classNames,
+  });
 
   labels.dispose();
 }
